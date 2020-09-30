@@ -1,124 +1,82 @@
+//DEPRECATED. INTEGRATION MOVED TO SUPER LAN CONNECT
+
 /**
-*
-* Copyright 2015 SmartThings
-*
-* Licensed under the Apache License, Version 2.0 (the “License”); you may not use this file except
-*
-* in compliance with the License. You may obtain a copy of the License at:
-*
-*  http://www.apache.org/licenses/LICENSE-2.0
-* Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
-*
-* on an “AS IS” BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
-*
-* for the specific language governing permissions and limitations under the License.
-*
-* Wemo Switch
-*
-* Author: superuser
-*
-* Date: 2013-10-11
-*
-* Updated for Wemo Insight Switch
-*
-* Author: Jeroen Keppens, 14/3/2016
-*/
-metadata {
-definition (name: “Wemo Switch”, namespace: “smartthings”, author: “SmartThings”) {
-capability “Actuator”
-capability “Switch”
-capability “Polling”
-capability “Power Meter”
-capability “Refresh”
-capability “Sensor”
+ *  Copyright 2015 SmartThings
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+ *  in compliance with the License. You may obtain a copy of the License at:
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
+ *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
+ *  for the specific language governing permissions and limitations under the License.
+ *
+ * Wemo Switch
+ *
+ * Author: Juan Risso (SmartThings)
+ * Date: 2015-10-11
+ */
+ metadata {
+ 	definition (name: "Wemo Insight Switch Custom", namespace: "laserquestwascool", author: "SmartThings", ocfDeviceType: "oic.d.smartplug") {
+        capability "Actuator"
+        capability "Switch"
+        capability "Polling"
+        capability "Power Meter"
+        capability "Refresh"
+        capability "Sensor"
 
-attribute "status", "string"
-attribute "onNow", "string"
-attribute "onToday", "string"
+        attribute "currentIP", "string"
+        attribute "status", "string"
+        attribute "onNow", "string"
+        attribute "onToday", "string"
 
-command "subscribe"
-command "resubscribe"
-command "unsubscribe"
-}
+        command "subscribe"
+        command "resubscribe"
+        command "unsubscribe"
+        command "setOffline"
+ }
 
-// simulator metadata
-simulator {}
+ // simulator metadata
+ simulator {}
 
-// UI tile definitions
-tiles {
-standardTile(“switch”, “device.switch”, width: 2, height: 2, canChangeIcon: true) {
-state “on”, label:’{name}', action:"switch.off", icon:"st.switches.switch.on", backgroundColor:"#79b821" state "off", label:'{name}’, action:“switch.on”, icon:“st.switches.switch.off”, backgroundColor:"#ffffff"
-}
-valueTile(“power”, “device.power”, decoration: “flat”, width: 1, height: 1) {
-state “power”, label:’{currentValue} W' } standardTile("status", "device.status", width: 1, height: 1 ) { state( "on", label: 'ON', backgroundColor: "#79b821" ) state( "standby", label: 'STANDBY', backgroundColor: "#FFA500" ) state( "off", label: 'OFF', backgroundColor: "#ffffff" ) } valueTile("onNow", "device.onNow", decoration: "flat", width: 1, height: 1) { state "onNow", label:'{currentValue}’
-}
-valueTile(“onToday”, “device.onToday”, decoration: “flat”, width: 1, height: 1) {
-state “onToday”, label:’${currentValue}’
-}
-standardTile(“refresh”, “device.switch”, inactiveLabel: false, decoration: “flat”, width: 1, height: 1) {
-state “default”, label:’’, action:“refresh.refresh”, icon:“st.secondary.refresh”
-}
+ // UI tile definitions
+    tiles(scale: 2) {
+        multiAttributeTile(name:"rich-control", type: "lighting", canChangeIcon: true){
+            tileAttribute ("device.switch", key: "PRIMARY_CONTROL") {
+                 attributeState "on", label:'${name}', action:"switch.off", icon:"st.switches.switch.off", backgroundColor:"#00A0DC", nextState:"turningOff"
+                 attributeState "off", label:'${name}', action:"switch.on", icon:"st.switches.switch.on", backgroundColor:"#ffffff", nextState:"turningOn"
+                 attributeState "turningOn", label:'${name}', action:"switch.off", icon:"st.switches.switch.off", backgroundColor:"#00A0DC", nextState:"turningOff"
+                 attributeState "turningOff", label:'${name}', action:"switch.on", icon:"st.switches.switch.on", backgroundColor:"#ffffff", nextState:"turningOn"
+                 attributeState "offline", label:'${name}', icon:"st.switches.switch.off", backgroundColor:"#cccccc"
+ 			}
+            tileAttribute ("currentIP", key: "SECONDARY_CONTROL") {
+             	 attributeState "currentIP", label: ''
+ 			}
+        }
 
-main "switch"
-details (["switch", "power", "status", "onNow", "onToday", "refresh"])
-}
-}
+        standardTile("switch", "device.switch", width: 2, height: 2, canChangeIcon: true) {
+            state "on", label:'${name}', action:"switch.off", icon:"st.switches.switch.off", backgroundColor:"#00A0DC", nextState:"turningOff"
+            state "off", label:'${name}', action:"switch.on", icon:"st.switches.switch.on", backgroundColor:"#ffffff", nextState:"turningOn"
+            state "turningOn", label:'${name}', action:"switch.off", icon:"st.switches.switch.off", backgroundColor:"#00A0DC", nextState:"turningOff"
+            state "turningOff", label:'${name}', action:"switch.on", icon:"st.switches.switch.on", backgroundColor:"#ffffff", nextState:"turningOn"
+            state "offline", label:'${name}', icon:"st.switches.switch.off", backgroundColor:"#cccccc"
+        }
 
-private def parseBinaryStateString(stateString) {
-//log.debug “stateString: stateString" //log.debug "stateString.size(): {stateString.size()}”
-def states = 
-def token = “”
-for(int i=0; i<stateString.size(); i++) {
-if (stateString[i] ==~ /[0-9]/) {
-//log.debug “symbol: ${stateString[i]}”
-token = token + stateString[i]
-} else {
-//log.debug “adding token: $token”
-int state = token.toLong()
-states << state
-token = “”
-}
-}
-//log.debug “states: $states”
-return states
-}
+        standardTile("refresh", "device.switch", inactiveLabel: false, height: 2, width: 2, decoration: "flat") {
+            state "default", label:"", action:"refresh.refresh", icon:"st.secondary.refresh"
+        }
 
-private def convertSecondsToTimeString(seconds) {
-log.debug “convertSecondsToTimeString of $seconds seconds”
-int h = seconds.intdiv(3600)
-int m = (seconds-h3600).intdiv(60)
-int s = seconds-(h3600)-(m*60)
-log.debug “h: $h, m: $m, s: $s”
-def timeString = “”
-if (h==0) {
-timeString = timeString + “00”
-} else if (h<=9) {
-timeString = timeString + “0$h”
-} else {
-timeString = timeString + “$h”
-}
-if (m==0) {
-timeString = timeString + “:00”
-} else if (m<=9) {
-timeString = timeString + “:0$m”
-} else {
-timeString = timeString + “:$m”
-}
-if (s==0) {
-timeString = timeString + “:00”
-} else if (s<=9) {
-timeString = timeString + “:0$s”
-} else {
-timeString = timeString + “:$s”
-}
-return timeString
+        main(["switch"])
+        details (["switch", "power", "status", "onNow", "onToday", "refresh"])
+    }
 }
 
 // parse events into attributes
 def parse(String description) {
-log.debug “Parsing ‘${description}’”
+    log.debug "Parsing '${description}'"
 
-  def msg = parseLanMessage(description)
+ def msg = parseLanMessage(description)
   def headerString = msg.header
 
   if (headerString?.contains("SID: uuid:")) {
@@ -183,32 +141,30 @@ log.debug “Parsing ‘${description}’”
           log.info "Binary State Response (not processed at this point): $wemoStateString"
   	}
   }
-
   result
 }
 
 private getTime() {
-// This is essentially System.currentTimeMillis()/1000, but System is disallowed by the sandbox.
-((new GregorianCalendar().time.time / 1000l).toInteger()).toString()
+    // This is essentially System.currentTimeMillis()/1000, but System is disallowed by the sandbox.
+    ((new GregorianCalendar().time.time / 1000l).toInteger()).toString()
 }
 
 private getCallBackAddress() {
-device.hub.getDataValue(“localIP”) + “:” + device.hub.getDataValue(“localSrvPortTCP”)
+ 	device.hub.getDataValue("localIP") + ":" + device.hub.getDataValue("localSrvPortTCP")
 }
 
 private Integer convertHexToInt(hex) {
-Integer.parseInt(hex,16)
+ 	Integer.parseInt(hex,16)
 }
 
 private String convertHexToIP(hex) {
-[convertHexToInt(hex[0…1]),convertHexToInt(hex[2…3]),convertHexToInt(hex[4…5]),convertHexToInt(hex[6…7])].join(".")
+ 	[convertHexToInt(hex[0..1]),convertHexToInt(hex[2..3]),convertHexToInt(hex[4..5]),convertHexToInt(hex[6..7])].join(".")
 }
 
 private getHostAddress() {
-def ip = getDataValue(“ip”)
-def port = getDataValue(“port”)
-
-  if (!ip || !port) {
+ 	def ip = getDataValue("ip")
+ 	def port = getDataValue("port")
+ 	if (!ip || !port) {
   	def parts = device.deviceNetworkId.split(":")
   	if (parts.length == 2) {
   		ip = parts[0]
@@ -222,158 +178,148 @@ def port = getDataValue(“port”)
 }
 
 def on() {
-log.debug “Executing ‘on’”
-sendEvent(name: “switch”, value: “on”)
+log.debug "Executing 'on'"
 def turnOn = new physicalgraph.device.HubAction("""POST /upnp/control/basicevent1 HTTP/1.1
-SOAPAction: “urn:Belkin:service:basicevent:1#SetBinaryState”
+SOAPAction: "urn:Belkin:service:basicevent:1#SetBinaryState"
 Host: ${getHostAddress()}
 Content-Type: text/xml
 Content-Length: 333
 
 <?xml version="1.0"?>
-<SOAP-ENV:Envelope xmlns:SOAP-ENV=“http://schemas.xmlsoap.org/soap/envelope/” SOAP-ENV:encodingStyle=“http://schemas.xmlsoap.org/soap/encoding/”>
-SOAP-ENV:Body
-<m:SetBinaryState xmlns:m=“urn:Belkin:service:basicevent:1”>
-1
-</m:SetBinaryState>
+<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
+<SOAP-ENV:Body>
+ <m:SetBinaryState xmlns:m="urn:Belkin:service:basicevent:1">
+<BinaryState>1</BinaryState>
+ </m:SetBinaryState>
 </SOAP-ENV:Body>
 </SOAP-ENV:Envelope>""", physicalgraph.device.Protocol.LAN)
 }
 
 def off() {
-log.debug “Executing ‘off’”
-sendEvent(name: “switch”, value: “off”)
+log.debug "Executing 'off'"
 def turnOff = new physicalgraph.device.HubAction("""POST /upnp/control/basicevent1 HTTP/1.1
-SOAPAction: “urn:Belkin:service:basicevent:1#SetBinaryState”
+SOAPAction: "urn:Belkin:service:basicevent:1#SetBinaryState"
 Host: ${getHostAddress()}
 Content-Type: text/xml
 Content-Length: 333
 
 <?xml version="1.0"?>
-<SOAP-ENV:Envelope xmlns:SOAP-ENV=“http://schemas.xmlsoap.org/soap/envelope/” SOAP-ENV:encodingStyle=“http://schemas.xmlsoap.org/soap/encoding/”>
-SOAP-ENV:Body
-<m:SetBinaryState xmlns:m=“urn:Belkin:service:basicevent:1”>
-0
-</m:SetBinaryState>
+<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
+<SOAP-ENV:Body>
+ <m:SetBinaryState xmlns:m="urn:Belkin:service:basicevent:1">
+<BinaryState>0</BinaryState>
+ </m:SetBinaryState>
 </SOAP-ENV:Body>
 </SOAP-ENV:Envelope>""", physicalgraph.device.Protocol.LAN)
 }
 
-/*def refresh() {
-log.debug “Executing ‘refresh’”
-new physicalgraph.device.HubAction("""POST /upnp/control/basicevent1 HTTP/1.1
-SOAPACTION: “urn:Belkin:service:basicevent:1#GetBinaryState”
-Content-Length: 277
-Content-Type: text/xml; charset=“utf-8”
-HOST: ${getHostAddress()}
-User-Agent: CyberGarage-HTTP/1.0
-
-<?xml version="1.0" encoding="utf-8"?>
-<s:Envelope xmlns:s=“http://schemas.xmlsoap.org/soap/envelope/” s:encodingStyle=“http://schemas.xmlsoap.org/soap/encoding/”>
-<s:Body>
-<u:GetBinaryState xmlns:u=“urn:Belkin:service:basicevent:1”>
-</u:GetBinaryState>
-</s:Body>
-</s:Envelope>""", physicalgraph.device.Protocol.LAN)
-}*/
-
-def refresh() {
-log.debug “Executing WeMo Switch ‘subscribe’, then ‘timeSyncResponse’, then ‘poll’”
-[subscribe(), timeSyncResponse(), poll()]
-}
-
 def subscribe(hostAddress) {
-log.debug “Executing ‘subscribe()’”
+log.debug "Executing 'subscribe()'"
 def address = getCallBackAddress()
 new physicalgraph.device.HubAction("""SUBSCRIBE /upnp/event/basicevent1 HTTP/1.1
-HOST: {hostAddress} CALLBACK: <http://{address}/>
+HOST: ${hostAddress}
+CALLBACK: <http://${address}/>
 NT: upnp:event
 TIMEOUT: Second-5400
 User-Agent: CyberGarage-HTTP/1.0
 
-“”", physicalgraph.device.Protocol.LAN)
+
+""", physicalgraph.device.Protocol.LAN)
 }
 
 def subscribe() {
-subscribe(getHostAddress())
+	subscribe(getHostAddress())
+}
+
+def refresh() {
+ 	log.debug "Executing WeMo Switch 'subscribe', then 'timeSyncResponse', then 'poll'"
+ 	[subscribe(), timeSyncResponse(), poll()]
 }
 
 def subscribe(ip, port) {
-def existingIp = getDataValue(“ip”)
-def existingPort = getDataValue(“port”)
-if (ip && ip != existingIp) {
-log.debug “Updating ip from $existingIp to $ip”
-updateDataValue(“ip”, ip)
-}
-if (port && port != existingPort) {
-log.debug “Updating port from $existingPort to $port”
-updateDataValue(“port”, port)
+    def existingIp = getDataValue("ip")
+    def existingPort = getDataValue("port")
+    if (ip && ip != existingIp) {
+         log.debug "Updating ip from $existingIp to $ip"
+    	 updateDataValue("ip", ip)
+    	 def ipvalue = convertHexToIP(getDataValue("ip"))
+         sendEvent(name: "currentIP", value: ipvalue, descriptionText: "IP changed to ${ipvalue}")
+    }
+ 	if (port && port != existingPort) {
+ 		log.debug "Updating port from $existingPort to $port"
+ 		updateDataValue("port", port)
+	}
+	subscribe("${ip}:${port}")
 }
 
-  subscribe("${ip}:${port}")
-}
-
-////////////////////////////
 def resubscribe() {
-log.debug “Executing ‘resubscribe()’”
-
-def sid = getDeviceDataByName(“subscriptionId”)
-
+    log.debug "Executing 'resubscribe()'"
+    def sid = getDeviceDataByName("subscriptionId")
 new physicalgraph.device.HubAction("""SUBSCRIBE /upnp/event/basicevent1 HTTP/1.1
-HOST: {getHostAddress()} SID: uuid:{sid}
+HOST: ${getHostAddress()}
+SID: uuid:${sid}
 TIMEOUT: Second-5400
 
-“”", physicalgraph.device.Protocol.LAN)
 
+""", physicalgraph.device.Protocol.LAN)
 }
 
-////////////////////////////
+
 def unsubscribe() {
-def sid = getDeviceDataByName(“subscriptionId”)
+    def sid = getDeviceDataByName("subscriptionId")
 new physicalgraph.device.HubAction("""UNSUBSCRIBE publisher path HTTP/1.1
-HOST: {getHostAddress()} SID: uuid:{sid}
+HOST: ${getHostAddress()}
+SID: uuid:${sid}
 
-“”", physicalgraph.device.Protocol.LAN)
+
+""", physicalgraph.device.Protocol.LAN)
 }
 
-////////////////////////////
+
 //TODO: Use UTC Timezone
 def timeSyncResponse() {
-log.debug “Executing ‘timeSyncResponse()’”
+log.debug "Executing 'timeSyncResponse()'"
 new physicalgraph.device.HubAction("""POST /upnp/control/timesync1 HTTP/1.1
-Content-Type: text/xml; charset=“utf-8”
-SOAPACTION: “urn:Belkin:service:timesync:1#TimeSync”
+Content-Type: text/xml; charset="utf-8"
+SOAPACTION: "urn:Belkin:service:timesync:1#TimeSync"
 Content-Length: 376
 HOST: ${getHostAddress()}
 User-Agent: CyberGarage-HTTP/1.0
 
 <?xml version="1.0" encoding="utf-8"?>
-<s:Envelope xmlns:s=“http://schemas.xmlsoap.org/soap/envelope/” s:encodingStyle=“http://schemas.xmlsoap.org/soap/encoding/”>
-<s:Body>
-<u:TimeSync xmlns:u=“urn:Belkin:service:timesync:1”>
-${getTime()}
--05.00
-1
-1
-</u:TimeSync>
-</s:Body>
+<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/" s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
+ <s:Body>
+  <u:TimeSync xmlns:u="urn:Belkin:service:timesync:1">
+   <UTC>${getTime()}</UTC>
+   <TimeZone>-05.00</TimeZone>
+   <dst>1</dst>
+   <DstSupported>1</DstSupported>
+  </u:TimeSync>
+ </s:Body>
 </s:Envelope>
-“”", physicalgraph.device.Protocol.LAN)
+""", physicalgraph.device.Protocol.LAN)
+}
+
+def setOffline() {
+	//sendEvent(name: "currentIP", value: "Offline", displayed: false)
+    sendEvent(name: "switch", value: "offline", descriptionText: "The device is offline")
 }
 
 def poll() {
-log.debug “Executing ‘poll’”
+log.debug "Executing 'poll'"
+if (device.currentValue("currentIP") != "Offline")
+    runIn(30, setOffline)
 new physicalgraph.device.HubAction("""POST /upnp/control/basicevent1 HTTP/1.1
-SOAPACTION: “urn:Belkin:service:basicevent:1#GetBinaryState”
+SOAPACTION: "urn:Belkin:service:basicevent:1#GetBinaryState"
 Content-Length: 277
-Content-Type: text/xml; charset=“utf-8”
+Content-Type: text/xml; charset="utf-8"
 HOST: ${getHostAddress()}
 User-Agent: CyberGarage-HTTP/1.0
 
 <?xml version="1.0" encoding="utf-8"?>
-<s:Envelope xmlns:s=“http://schemas.xmlsoap.org/soap/envelope/” s:encodingStyle=“http://schemas.xmlsoap.org/soap/encoding/”>
+<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/" s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
 <s:Body>
-<u:GetBinaryState xmlns:u=“urn:Belkin:service:basicevent:1”>
+<u:GetBinaryState xmlns:u="urn:Belkin:service:basicevent:1">
 </u:GetBinaryState>
 </s:Body>
 </s:Envelope>""", physicalgraph.device.Protocol.LAN)
